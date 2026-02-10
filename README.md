@@ -1,6 +1,13 @@
 # Water-Transport-Image-Recognition
 A deep learning image classification project that identifies different types of water transport vessels using a custom CNN and a ResNet50 pretrained model, with a Flask-based web interface for real-time predictions.
 
+## Model File Notice‼️
+
+The trained model file was removed from this repository due to GitHub’s file size restrictions.  
+As a result, users are required to rebuild the model by running the training and fine-tuning notebooks provided in this repository.
+
+This ensures compliance with repository size limits while maintaining reproducibility of the project.
+
 # CNN Water Transport Classification
 
 ## Overview
