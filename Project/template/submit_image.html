@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Image Recognition</title>
+  <style>
+    :root{
+      --bg: #0b1220;
+      --card: #121c2d;
+      --border: #22314a;
+      --text: #e8f0ff;
+      --muted: #9fb0c8;
+      --accent: #5bc0ff;
+      --good: #2fe57a;
+      --warn: #ffcc66;
+      --bad: #ff6b6b;
+    }
+    *{box-sizing:border-box; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;}
+    body{
+      margin:0; min-height:100vh;
+      background: radial-gradient(900px 500px at 20% 10%, rgba(91,192,255,.18), transparent 60%),
+                  radial-gradient(900px 500px at 80% 20%, rgba(47,229,122,.12), transparent 60%),
+                  var(--bg);
+      color: var(--text);
+      display:flex; align-items:center; justify-content:center;
+      padding:24px;
+    }
+    .wrap{ width:min(980px, 100%); display:grid; gap:16px; grid-template-columns: 1.1fr .9fr; }
+    @media (max-width: 900px){ .wrap{ grid-template-columns: 1fr; } }
+
+    .card{
+      background: rgba(18,28,45,.86);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 18px 60px rgba(0,0,0,.35);
+      padding: 22px;
+    }
+    h1{margin:0 0 6px; font-size: 24px;}
+    p{margin:0 0 16px; color:var(--muted); line-height:1.5;}
+    hr{border:none; border-top:1px solid var(--border); margin:16px 0;}
+
+    .field{
+      display:flex; flex-direction:column; gap:8px;
+      margin-bottom: 12px;
+    }
+    label{font-size:14px; color:var(--muted);}
+    input[type="file"]{
+      padding: 12px;
+      background: rgba(11,18,32,.65);
+      border: 1px dashed rgba(91,192,255,.35);
+      border-radius: 12px;
+      color: var(--muted);
+    }
+
+    .btn{
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid rgba(91,192,255,.45);
+      background: linear-gradient(90deg, rgba(91,192,255,.20), rgba(91,192,255,.08));
+      color: var(--text);
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform .08s ease, border-color .12s ease, background .12s ease;
+    }
+    .btn:hover{ transform: translateY(-1px); border-color: rgba(91,192,255,.75); }
+    .btn:disabled{ opacity:.55; cursor:not-allowed; transform:none; }
+
+    .previewBox{
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow:hidden;
+      background: rgba(11,18,32,.55);
+      min-height: 260px;
+      display:flex; align-items:center; justify-content:center;
+      padding: 12px;
+    }
+    .previewBox img{
+      max-width:100%;
+      max-height: 420px;
+      border-radius: 12px;
+      display:block;
+    }
+    .placeholder{
+      color: var(--muted);
+      text-align:center;
+      font-size: 14px;
+      line-height:1.5;
+      padding: 24px;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(11,18,32,.55);
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 10px;
+    }
+    .dot{
+      width:10px; height:10px; border-radius:999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(91,192,255,.12);
+    }
+    .className{
+      color: var(--text);
+      font-weight: 700;
+      letter-spacing: .2px;
+    }
+
+    .small{
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <!-- LEFT: upload card -->
+    <div class="card">
+      <h1>Image Recognition</h1>
+      <p>Upload an image and the model will predict which class it belongs to.</p>
+      <hr/>
+
+      <form action="/predict" method="POST" enctype="multipart/form-data">
+        <div class="field">
+          <label for="imagefile">Select image</label>
+          <input type="file" name="imagefile" id="imagefile" accept="image/*" required />
+        </div>
+
+        <button class="btn" type="submit">Upload & Predict</button>
+        <div class="small">Tip: Use clear images for best results.</div>
+      </form>
+    </div>
+
+    <!-- RIGHT: preview + result -->
+    <div class="card">
+      <h1>Preview & Result</h1>
+      <p>Your uploaded image will appear here with the predicted class.</p>
+      <hr/>
+
+      <div class="previewBox">
+        {% if img_data %}
+          <img src="data:image/png;base64,{{ img_data }}" alt="Uploaded image preview"/>
+        {% else %}
+          <div class="placeholder">
+            No image uploaded yet.<br/>
+            Choose a file and click <b>Upload & Predict</b>.
+          </div>
+        {% endif %}
+      </div>
+
+      {% if predict_data %}
+        <div class="badge">
+          <span class="dot"></span>
+          Prediction:
+          <span class="className">{{ predict_data }}</span>
+        </div>
+        {% if confidence is not none %}
+            <p>
+                Confidence: <strong>{{ (confidence * 100) | round(2) }}%</strong>
+            </p>
+        {% endif %}
+      {% endif %}
+    {% if all_conf %}
+      <hr/>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        {% for cls, p in all_conf.items() %}
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:14px;">
+              <span>{{ cls }}</span>
+              <span>{{ (p * 100) | round(2) }}%</span>
+            </div>
+            <div style="height:10px; border:1px solid var(--border); border-radius:999px; overflow:hidden; background: rgba(11,18,32,.55);">
+              <div style="height:100%; width: {{ (p * 100) }}%; background: var(--accent);"></div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    </div>
+  </div>
+
+  <script>
+    // Optional: instant preview before uploading
+    const input = document.getElementById("imagefile");
+    input?.addEventListener("change", (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      // This preview only changes UI; server prediction still happens after submit.
+    });
+  </script>
+</body>
+</html>
